@@ -1,4 +1,5 @@
 {
   "name": "wm-libs",
-  "main" : ["./wm-libs/jquery/jquery.js"]
+  "version": "0.0.0",
+  "main": ["./wm-libs/jquery/jquery.js"]
 }
