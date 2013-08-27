@@ -1,0 +1,4 @@
+{
+  "name": "wm-libs",
+  "main" : ["./wm-libs/jquery/jquery.js"]
+}
