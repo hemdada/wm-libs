@@ -2,7 +2,7 @@
  
 /*
  * AngularJS Toaster
- * Version: 0.1
+ * Version: 0.3
  *
  * Copyright 2013 Jiri Kavulak.  
  * All Rights Reserved.  
@@ -13,37 +13,42 @@
  * Related to project of John Papa and Hans Fjällemark
  */
  
-angular.module('toaster', []).service('toaster', ['$rootScope', function ($rootScope) {
-    this.pop = function (type, title, body, timeout) {
+angular.module('toaster', [])
+.service('toaster', ['$rootScope', function ($rootScope) {
+    this.pop = function (type, title, body, timeout, trustedHtml) {
         this.toast = {
             type: type,
             title: title,
             body: body,
             timeout: timeout,
+            trustedHtml: trustedHtml
         };
-        $rootScope.$emit('toaster-newToast');
+        $rootScope.$broadcast('toaster-newToast');
     };
-}]).constant('toasterConfig', {
-  				'tap-to-dismiss': true,
-					'newest-on-top': true,
-					//'fade-in': 1000,            // done in css
-					//'on-fade-in': undefined,    // not implemented
-					//'fade-out': 1000,           // done in css
-					// 'on-fade-out': undefined,  // not implemented
-					//'extended-time-out': 1000,    // not implemented
-					'time-out': 5000, // Set timeOut and extendedTimeout to 0 to make it sticky
-					'icon-classes': {
-						error: 'toast-error',
-						info: 'toast-info',
-						success: 'toast-success',
-						warning: 'toast-warning'
-					},
-					'icon-class': 'toast-info',
-					'position-class': 'toast-top-right',
-					'title-class': 'toast-title',
-					'message-class': 'toast-message'
-				}).directive('toasterContainer', ['$rootScope', '$compile', '$timeout', 'toasterConfig', 'toaster',
-function ($rootScope, $compile, $timeout, toasterConfig, toaster) {
+}])
+.constant('toasterConfig', {
+                                  'tap-to-dismiss': true,
+                                        'newest-on-top': true,
+                                        //'fade-in': 1000,            // done in css
+                                        //'on-fade-in': undefined,    // not implemented
+                                        //'fade-out': 1000,           // done in css
+                                        // 'on-fade-out': undefined,  // not implemented
+                                        //'extended-time-out': 1000,    // not implemented
+                                        'time-out': 5000, // Set timeOut and extendedTimeout to 0 to make it sticky
+                                        'icon-classes': {
+                                                error: 'toast-error',
+                                                info: 'toast-info',
+                                                success: 'toast-success',
+                                                warning: 'toast-warning'
+                                        },
+                                        'trustedHtml': false
+                                        'icon-class': 'toast-info',
+                                        'position-class': 'toast-top-right',
+                                        'title-class': 'toast-title',
+                                        'message-class': 'toast-message'
+                                })
+.directive('toasterContainer', ['$compile', '$timeout', '$sce', 'toasterConfig', 'toaster',
+function ($compile, $timeout, $sce, toasterConfig, toaster) {
   return {
     replace: true,
     restrict: 'EA',
@@ -71,6 +76,10 @@ function ($rootScope, $compile, $timeout, toasterConfig, toaster) {
         id++;
         angular.extend(toast, { id: id });
         
+        if (toast.trustedHtml){
+          toast.html = $sce.trustAsHtml(toast.body);
+        }
+        
         var timeout = typeof(toast.timeout) == "number" ? toast.timeout : mergedConfig['time-out'];
         if (timeout > 0)
             setTimeout(toast, timeout);
@@ -88,7 +97,7 @@ function ($rootScope, $compile, $timeout, toasterConfig, toaster) {
       }
       
       scope.toasters = [];
-      $rootScope.$on('toaster-newToast', function () {
+      scope.$on('toaster-newToast', function () {
         addToast(toaster.toast);
       });
     },
@@ -119,7 +128,9 @@ function ($rootScope, $compile, $timeout, toasterConfig, toaster) {
       '<div ng-class="\'animateToaster\'" ng-repeat="toaster in toasters">' +
         '<div class="toast" ng-class="toaster.type" ng-click="remove(toaster.id)" ng-mouseover="stopTimer(toaster)">' +
           '<div ng-class="config.title">{{toaster.title}}</div>' +
-          '<div ng-class="config.message">{{toaster.body}}' +
+          '<div ng-class="config.message" ng-switch on="toaster.trustedHtml">' +
+            '<div ng-switch-when="true" ng-bind-html="toaster.html"></div>' +
+            '<div ng-switch-default >{{toaster.body}}</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
