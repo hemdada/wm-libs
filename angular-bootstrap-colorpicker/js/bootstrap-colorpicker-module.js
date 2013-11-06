@@ -14,14 +14,13 @@ angular.module('colorpicker.module', [])
         }
         return false;
       },
-      getOffset: function (elem) {
+	  getOffset: function (elem) {
         var
           x = 0,
           y = 0;
-        while (elem && !isNaN(elem.offsetLeft) && !isNaN(elem.offsetTop)) {
-          x += elem.offsetLeft;
-          y += elem.offsetTop;
-          elem = elem.offsetParent;
+        if (elem && !isNaN(angular.element(elem).offset().top) && !isNaN(angular.element(elem).offset().left)) {
+          x = angular.element(elem).offset().left;
+          y = angular.element(elem).offset().top;
         }
         return {
           top: y,
