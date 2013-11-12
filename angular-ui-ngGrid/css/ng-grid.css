@@ -41,6 +41,8 @@
 .ngVerticalBarVisible {
     width: 1px;
     background-color: #d4d4d4;
+    /*extra properties for theming*/
+    border-right: 1px solid #ccc;
 }
 
 .ngHeaderContainer {
@@ -48,6 +50,12 @@
     overflow: hidden;
     font-weight: bold;
     background-color: inherit;
+    /* extra properties for changing theme */
+    background-color: #666;
+    font-family: arial;
+    color: #fff;
+    font-size: 14px;
+    
 }
 
 .ngHeaderCell {
@@ -55,6 +63,8 @@
     top: 0;
     bottom: 0;
     background-color: inherit;
+    /* extra property for themeing*/
+    text-transform: capitalize;
 }
 
 .ngHeaderCell.pinned {
@@ -152,6 +162,9 @@
     -o-text-overflow: ellipsis;
     text-overflow: ellipsis;
     overflow: hidden;
+    /*extra properties for themeing*/
+    padding: 7px;
+    padding-top: 7px;
 }
 
 .ngHeaderButtonArrow {
@@ -372,10 +385,17 @@
 
 .ngRow.odd {
     background-color: #fdfdfd;
+       /*extra properties for grid widget*/
+    background-color:  #f0f0f0;
+
 }
 
 .ngRow.even {
     background-color: #f3f3f3;
+    background-color: #fdfdfd;
+
+
+
 }
 
 .ngRow.selected {
@@ -388,6 +408,8 @@
     top: 0;
     bottom: 0;
     background-color: inherit;
+    /*extra properties*/
+    border-bottom: 1px solid #ddd;
 }
 
 .ngCell.pinned {
@@ -404,6 +426,10 @@
     -o-text-overflow: ellipsis;
     text-overflow: ellipsis;
     overflow: hidden;
+    /*extra properties*/
+    font-size: 1.1em !important;
+    font-family: arial, sans serif;
+    color: #000000;
 }
 
 .ngSelectionCell {
