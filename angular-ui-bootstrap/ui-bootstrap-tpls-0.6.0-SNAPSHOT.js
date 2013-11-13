@@ -2647,7 +2647,8 @@ function($parse, $http, $templateCache, $compile) {
         }
 
         scope.$watch('active', function(active) {
-          setActive(scope.$parent, active);
+          if (setActive)
+            setActive(scope.$parent, active);
           if (active) {
             tabsetCtrl.select(scope);
             scope.onSelect();
@@ -2673,7 +2674,7 @@ function($parse, $http, $templateCache, $compile) {
         scope.$on('$destroy', function() {
           tabsetCtrl.removeTab(scope);
         });
-        if (scope.active) {
+        if (scope.active && setActive) {
           setActive(scope.$parent, true);
         }
 
