@@ -372,7 +372,7 @@ angular.module('ngGrid.services').factory('$sortService', ['$parse', function($p
                 return sortService.sortBool;
             case "string":
                 // if number string return number string sort fn. else return the str
-                return item.match(/^[-+]?[Â£$Â¤]?[\d,.]+%?$/) ? sortService.sortNumberStr : sortService.sortAlpha;
+                return item.match(/^[-+]?[£$¤]?[\d,.]+%?$/) ? sortService.sortNumberStr : sortService.sortAlpha;
             default:
                 //check if the item is a valid Date
                 if (Object.prototype.toString.call(item) === '[object Date]') {
@@ -3054,7 +3054,7 @@ ngGridDirectives.directive('ngGridMenu', ['$compile', '$templateCache', function
 }]);
 ngGridDirectives.directive('ngGrid', ['$compile', '$filter', '$templateCache', '$sortService', '$domUtilityService', '$utilityService', '$timeout', '$parse', '$http', '$q', function ($compile, $filter, $templateCache, sortService, domUtilityService, $utils, $timeout, $parse, $http, $q) {
     var ngGridDirective = {
-        scope:true,
+        scope: true,
         compile: function() {
             return {
                 pre: function($scope, iElement, iAttrs) {
@@ -3102,7 +3102,7 @@ ngGridDirectives.directive('ngGrid', ['$compile', '$filter', '$templateCache', '
                         else {
                             $scope.totalServerItems = 0;
                         }
-
+                        
                         // if it is a string we can watch for data changes. otherwise you won't be able to update the grid data
                         if (typeof options.data === "string") {
                             var dataWatcher = function (a) {
@@ -3130,7 +3130,7 @@ ngGridDirectives.directive('ngGrid', ['$compile', '$filter', '$templateCache', '
                                 dataWatcher($scope.$eval(options.data));
                             });
                         }
-
+                        
                         grid.footerController = new ngFooter($scope, grid);
                         //set the right styling on the container
                         iElement.addClass("ngGrid").addClass(grid.gridId.toString());
@@ -3151,7 +3151,7 @@ ngGridDirectives.directive('ngGrid', ['$compile', '$filter', '$templateCache', '
                             if (grid.rowCache[rowIndex]) {
                                 if (grid.rowCache[rowIndex].clone) {
                                     grid.rowCache[rowIndex].clone.setSelection(state ? true : false);
-                                }
+                                } 
                                 grid.rowCache[rowIndex].setSelection(state ? true : false);
                             }
                         };
@@ -3194,12 +3194,12 @@ ngGridDirectives.directive('ngGrid', ['$compile', '$filter', '$templateCache', '
                         options.$gridServices = { SortService: sortService, DomUtilityService: domUtilityService, UtilityService: $utils };
                         $scope.$on('ngGridEventDigestGrid', function(){
                             domUtilityService.digest($scope.$parent);
-                        });
-
+                        });         
+                        
                         $scope.$on('ngGridEventDigestGridParent', function(){
                             domUtilityService.digest($scope.$parent);
                         });
-                        // set up the columns
+                        // set up the columns 
                         $scope.$evalAsync(function() {
                             $scope.adjustScrollLeft(0);
                         });
@@ -3356,29 +3356,29 @@ ngGridDirectives.directive('ngViewport', [function() {
 }]);
 window.ngGrid.i18n['da'] = {
     ngAggregateLabel: 'artikler',
-    ngGroupPanelDescription: 'GrupÃ©r rÃ¦kker udfra en kolonne ved at trÃ¦kke dens overskift hertil.',
-    ngSearchPlaceHolder: 'SÃ¸g...',
-    ngMenuText: 'VÃ¦lg kolonner:',
-    ngShowingItemsLabel: 'Viste rÃ¦kker:',
-    ngTotalItemsLabel: 'RÃ¦kker totalt:',
-    ngSelectedItemsLabel: 'Valgte rÃ¦kker:',
-    ngPageSizeLabel: 'Side stÃ¸rrelse:',
-    ngPagerFirstTitle: 'FÃ¸rste side',
-    ngPagerNextTitle: 'NÃ¦ste side',
+    ngGroupPanelDescription: 'Grupér rækker udfra en kolonne ved at trække dens overskift hertil.',
+    ngSearchPlaceHolder: 'Søg...',
+    ngMenuText: 'Vælg kolonner:',
+    ngShowingItemsLabel: 'Viste rækker:',
+    ngTotalItemsLabel: 'Rækker totalt:',
+    ngSelectedItemsLabel: 'Valgte rækker:',
+    ngPageSizeLabel: 'Side størrelse:',
+    ngPagerFirstTitle: 'Første side',
+    ngPagerNextTitle: 'Næste side',
     ngPagerPrevTitle: 'Forrige side',
     ngPagerLastTitle: 'Sidste side'
 };
 window.ngGrid.i18n['de'] = {
     ngAggregateLabel: 'artikel',
-    ngGroupPanelDescription: 'Ziehen Sie eine SpaltenÃ¼berschrift hier und legen Sie es der Gruppe nach dieser Spalte.',
+    ngGroupPanelDescription: 'Ziehen Sie eine Spaltenüberschrift hier und legen Sie es der Gruppe nach dieser Spalte.',
     ngSearchPlaceHolder: 'Suche...',
-    ngMenuText: 'Spalten auswÃ¤hlen:',
+    ngMenuText: 'Spalten auswählen:',
     ngShowingItemsLabel: 'Zeige Artikel:',
     ngTotalItemsLabel: 'Meiste Artikel:',
-    ngSelectedItemsLabel: 'AusgewÃ¤hlte Artikel:',
-    ngPageSizeLabel: 'GrÃ¶ÃŸe Seite:',
+    ngSelectedItemsLabel: 'Ausgewählte Artikel:',
+    ngPageSizeLabel: 'Größe Seite:',
     ngPagerFirstTitle: 'Erste Page',
-    ngPagerNextTitle: 'NÃ¤chste Page',
+    ngPagerNextTitle: 'Nächste Page',
     ngPagerPrevTitle: 'Vorherige Page',
     ngPagerLastTitle: 'Letzte Page'
 };
@@ -3397,32 +3397,32 @@ window.ngGrid.i18n['en'] = {
     ngPagerLastTitle: 'Last Page'
 };
 window.ngGrid.i18n['es'] = {
-    ngAggregateLabel: 'ArtÃ­culos',
-    ngGroupPanelDescription: 'Arrastre un encabezado de columna aquÃ­ y soltarlo para agrupar por esa columna.',
+    ngAggregateLabel: 'Artículos',
+    ngGroupPanelDescription: 'Arrastre un encabezado de columna aquí y soltarlo para agrupar por esa columna.',
     ngSearchPlaceHolder: 'Buscar...',
     ngMenuText: 'Elegir columnas:',
-    ngShowingItemsLabel: 'ArtÃ­culos Mostrando:',
-    ngTotalItemsLabel: 'ArtÃ­culos Totales:',
-    ngSelectedItemsLabel: 'ArtÃ­culos Seleccionados:',
-    ngPageSizeLabel: 'TamaÃ±o de PÃ¡gina:',
-    ngPagerFirstTitle: 'Primera PÃ¡gina',
-    ngPagerNextTitle: 'PÃ¡gina Siguiente',
-    ngPagerPrevTitle: 'PÃ¡gina Anterior',
-    ngPagerLastTitle: 'Ãšltima PÃ¡gina'
+    ngShowingItemsLabel: 'Artículos Mostrando:',
+    ngTotalItemsLabel: 'Artículos Totales:',
+    ngSelectedItemsLabel: 'Artículos Seleccionados:',
+    ngPageSizeLabel: 'Tamaño de Página:',
+    ngPagerFirstTitle: 'Primera Página',
+    ngPagerNextTitle: 'Página Siguiente',
+    ngPagerPrevTitle: 'Página Anterior',
+    ngPagerLastTitle: 'Última Página'
 };
 window.ngGrid.i18n['fr'] = {
     ngAggregateLabel: 'articles',
-    ngGroupPanelDescription: 'Faites glisser un en-tÃªte de colonne ici et dÃ©posez-le vers un groupe par cette colonne.',
+    ngGroupPanelDescription: 'Faites glisser un en-tête de colonne ici et déposez-le vers un groupe par cette colonne.',
     ngSearchPlaceHolder: 'Recherche...',
     ngMenuText: 'Choisir des colonnes:',
     ngShowingItemsLabel: 'Articles Affichage des:',
     ngTotalItemsLabel: 'Nombre total d\'articles:',
-    ngSelectedItemsLabel: 'Ã‰lÃ©ments Articles:',
+    ngSelectedItemsLabel: 'Éléments Articles:',
     ngPageSizeLabel: 'Taille de page:',
-    ngPagerFirstTitle: 'PremiÃ¨re page',
+    ngPagerFirstTitle: 'Première page',
     ngPagerNextTitle: 'Page Suivante',
-    ngPagerPrevTitle: 'Page prÃ©cÃ©dente',
-    ngPagerLastTitle: 'DerniÃ¨re page'
+    ngPagerPrevTitle: 'Page précédente',
+    ngPagerLastTitle: 'Dernière page'
 };
 window.ngGrid.i18n['pt-br'] = {
     ngAggregateLabel: 'items',
@@ -3432,40 +3432,40 @@ window.ngGrid.i18n['pt-br'] = {
     ngShowingItemsLabel: 'Mostrando os Items:',
     ngTotalItemsLabel: 'Total de Items:',
     ngSelectedItemsLabel: 'Items Selecionados:',
-    ngPageSizeLabel: 'Tamanho da PÃ¡gina:',
-    ngPagerFirstTitle: 'Primeira PÃ¡gina',
-    ngPagerNextTitle: 'PrÃ³xima PÃ¡gina',
-    ngPagerPrevTitle: 'PÃ¡gina Anterior',
-    ngPagerLastTitle: 'Ãšltima PÃ¡gina'
+    ngPageSizeLabel: 'Tamanho da Página:',
+    ngPagerFirstTitle: 'Primeira Página',
+    ngPagerNextTitle: 'Próxima Página',
+    ngPagerPrevTitle: 'Página Anterior',
+    ngPagerLastTitle: 'Última Página'
 };
 window.ngGrid.i18n['zh-cn'] = {
-    ngAggregateLabel: 'æ¡ç›®',
-    ngGroupPanelDescription: 'æ‹–æ›³è¡¨å¤´åˆ°æ­¤å¤„ä»¥è¿›è¡Œåˆ†ç»„',
-    ngSearchPlaceHolder: 'æœç´¢...',
-    ngMenuText: 'æ•°æ®åˆ†ç»„ä¸Žé€‰æ‹©åˆ—ï¼š',
-    ngShowingItemsLabel: 'å½“å‰æ˜¾ç¤ºæ¡ç›®ï¼š',
-    ngTotalItemsLabel: 'æ¡ç›®æ€»æ•°ï¼š',
-    ngSelectedItemsLabel: 'é€‰ä¸­æ¡ç›®ï¼š',
-    ngPageSizeLabel: 'æ¯é¡µæ˜¾ç¤ºæ•°ï¼š',
-    ngPagerFirstTitle: 'å›žåˆ°é¦–é¡µ',
-    ngPagerNextTitle: 'ä¸‹ä¸€é¡µ',
-    ngPagerPrevTitle: 'ä¸Šä¸€é¡µ',
-    ngPagerLastTitle: 'å‰å¾€å°¾é¡µ' 
+    ngAggregateLabel: '条目',
+    ngGroupPanelDescription: '拖曳表头到此处以进行分组',
+    ngSearchPlaceHolder: '搜索...',
+    ngMenuText: '数据分组与选择列：',
+    ngShowingItemsLabel: '当前显示条目：',
+    ngTotalItemsLabel: '条目总数：',
+    ngSelectedItemsLabel: '选中条目：',
+    ngPageSizeLabel: '每页显示数：',
+    ngPagerFirstTitle: '回到首页',
+    ngPagerNextTitle: '下一页',
+    ngPagerPrevTitle: '上一页',
+    ngPagerLastTitle: '前往尾页' 
 };
 
 window.ngGrid.i18n['zh-tw'] = {
-    ngAggregateLabel: 'ç­†',
-    ngGroupPanelDescription: 'æ‹–æ‹‰è¡¨é ­åˆ°æ­¤è™•ä»¥é€²è¡Œåˆ†çµ„',
-    ngSearchPlaceHolder: 'æœå°‹...',
-    ngMenuText: 'é¸æ“‡æ¬„ä½ï¼š',
-    ngShowingItemsLabel: 'ç›®å‰é¡¯ç¤ºç­†æ•¸ï¼š',
-    ngTotalItemsLabel: 'ç¸½ç­†æ•¸ï¼š',
-    ngSelectedItemsLabel: 'é¸å–ç­†æ•¸ï¼š',
-    ngPageSizeLabel: 'æ¯é é¡¯ç¤ºï¼š',
-    ngPagerFirstTitle: 'ç¬¬ä¸€é ',
-    ngPagerNextTitle: 'ä¸‹ä¸€é ',
-    ngPagerPrevTitle: 'ä¸Šä¸€é ',
-    ngPagerLastTitle: 'æœ€å¾Œé '
+    ngAggregateLabel: '筆',
+    ngGroupPanelDescription: '拖拉表頭到此處以進行分組',
+    ngSearchPlaceHolder: '搜尋...',
+    ngMenuText: '選擇欄位：',
+    ngShowingItemsLabel: '目前顯示筆數：',
+    ngTotalItemsLabel: '總筆數：',
+    ngSelectedItemsLabel: '選取筆數：',
+    ngPageSizeLabel: '每頁顯示：',
+    ngPagerFirstTitle: '第一頁',
+    ngPagerNextTitle: '下一頁',
+    ngPagerPrevTitle: '上一頁',
+    ngPagerLastTitle: '最後頁'
 };
 
 angular.module("ngGrid").run(["$templateCache", function($templateCache) {
@@ -3564,7 +3564,7 @@ angular.module("ngGrid").run(["$templateCache", function($templateCache) {
 
   $templateCache.put("headerCellTemplate.html",
     "<div class=\"ngHeaderSortColumn {{col.headerClass}}\" ng-style=\"{'cursor': col.cursor}\" ng-class=\"{ 'ngSorted': !noSortVisible }\">" +
-    "    <div ng-click=\"col.sort($event)\" ng-class=\"'colt' + col.index\" class=\"ngHeaderText\">{{col.displayName}}</div>" +
+    "    <div ng-click=\"col.sort($event)\" ng-class=\"'colt' + col.index\" class=\"ngHeaderText\" ng-attr-title=\"{{col.displayName}}\">{{col.displayName}}</div>" +
     "    <div class=\"ngSortButtonDown\" ng-show=\"col.showSortButtonDown()\"></div>" +
     "    <div class=\"ngSortButtonUp\" ng-show=\"col.showSortButtonUp()\"></div>" +
     "    <div class=\"ngSortPriority\">{{col.sortPriority}}</div>" +
