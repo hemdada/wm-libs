@@ -2667,6 +2667,7 @@ var ngSearchProvider = function ($scope, grid, $filter) {
 };
 var ngSelectionProvider = function (grid, $scope, $parse) {
     var self = this;
+
     self.multi = grid.config.multiSelect;
     self.selectedItems = grid.config.selectedItems;
     self.selectedIndex = grid.config.selectedIndex;
@@ -2676,6 +2677,7 @@ var ngSelectionProvider = function (grid, $scope, $parse) {
 
     // function to manage the selection action of a data item (entity)
     self.ChangeSelection = function (rowItem, evt) {
+        self.multi=$scope.multipleSelection;
         // ctrl-click + shift-click multi-selections
         // up/down key navigation in multi-selections
         var charCode = evt.which || evt.keyCode;

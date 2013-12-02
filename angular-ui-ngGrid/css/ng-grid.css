@@ -543,3 +543,14 @@
     overflow: auto;
     z-index: 2;
 }
+.gridform_error{
+    display: none;
+    color: #FF0000;
+    padding-left: 5px;
+ }
+.gridform_save:disabled{
+    background-color: #DDDDDD !important;
+}
+.ng-invalid-nmvd + .gridform_error{
+    display: inline-block;   
+}
