@@ -16,15 +16,20 @@
 angular.module('toaster', [])
 .service('toaster', ['$rootScope', function ($rootScope) {
     this.pop = function (type, title, body, timeout, trustedHtml) {
-        this.toast = {
-            type: type,
-            title: title,
-            body: body,
-            timeout: timeout,
-            trustedHtml: trustedHtml
-        };
-        $rootScope.$broadcast('toaster-newToast');
-    };
+            this.toast = {};
+            $rootScope.$broadcast('toaster-newToast', {
+                toast: {
+                    type: type,
+                    title: title,
+                    body: body,
+                    timeout: timeout,
+                    trustedHtml: trustedHtml
+                }
+            });
+        },
+            this.compile = function (scope) {
+                $rootScope = scope;
+            };
 }])
 .constant('toasterConfig', {
                                   'tap-to-dismiss': true,
@@ -95,7 +100,8 @@ function ($compile, $timeout, $sce, toasterConfig, toaster) {
 
       scope.toaster = {};
       scope.toaster.show = false;
-      scope.$on('toaster-newToast', function () {
+      scope.$on('toaster-newToast', function (event, args) {
+        toaster.toast = args.toast;
         addToast(toaster.toast);
       });
     },
