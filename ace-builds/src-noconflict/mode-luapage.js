@@ -8,10 +8,9 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var LuaPageHighlightRules = require("./luapage_highlight_rules").LuaPageHighlightRules;
 
 var Mode = function() {
-    var highlighter = new LuaPageHighlightRules();
+    this.HighlightRules = LuaPageHighlightRules;
     
-    this.$tokenizer = new Tokenizer(new LuaPageHighlightRules().getRules());
-    this.$embeds = highlighter.getEmbeds();
+    this.HighlightRules = LuaPageHighlightRules;
     this.createModeDelegates({
         "lua-": LuaMode
     });
@@ -21,7 +20,7 @@ oop.inherits(Mode, HtmlMode);
 exports.Mode = Mode;
 });
 
-ace.define('ace/mode/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/html_highlight_rules', 'ace/mode/behaviour/html', 'ace/mode/folding/html'], function(require, exports, module) {
+ace.define('ace/mode/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/html_highlight_rules', 'ace/mode/behaviour/html', 'ace/mode/folding/html', 'ace/mode/html_completions'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -32,13 +31,13 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var HtmlHighlightRules = require("./html_highlight_rules").HtmlHighlightRules;
 var HtmlBehaviour = require("./behaviour/html").HtmlBehaviour;
 var HtmlFoldMode = require("./folding/html").FoldMode;
+var HtmlCompletions = require("./html_completions").HtmlCompletions;
 
 var Mode = function() {
-    var highlighter = new HtmlHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = HtmlHighlightRules;
     this.$behaviour = new HtmlBehaviour();
+    this.$completer = new HtmlCompletions();
     
-    this.$embeds = highlighter.getEmbeds();
     this.createModeDelegates({
         "js-": JavaScriptMode,
         "css-": CssMode
@@ -60,6 +59,11 @@ oop.inherits(Mode, TextMode);
         return false;
     };
 
+    this.getCompletions = function(state, session, pos, prefix) {
+        return this.$completer.getCompletions(state, session, pos, prefix);
+    };
+
+    this.$id = "ace/mode/html";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -79,12 +83,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new JavaScriptHighlightRules();
+    this.HighlightRules = JavaScriptHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -97,7 +99,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 
@@ -149,6 +151,7 @@ oop.inherits(Mode, TextMode);
         return worker;
     };
 
+    this.$id = "ace/mode/javascript";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -346,14 +349,14 @@ var JavaScriptHighlightRules = function() {
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
                 token: "string.regexp",
-                regex: "/\\w*",
+                regex: "/[sxngimy]*",
                 next: "no_regex"
             }, {
                 token : "invalid",
                 regex: /\{\d+\b,?\d*\}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|\{\d+\b,?\d*\}|[+*]\?|[()$^+*?]/
+                regex: /\(\?[:=!]|\)|\{\d+\b,?\d*\}|[+*]\?|[()$^+*?.]/
             }, {
                 token : "constant.language.delimiter",
                 regex: /\|/
@@ -645,7 +648,7 @@ var CstyleBehaviour = function () {
                     selection: false
                 };
             } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                if (/[\]\}\)]/.test(line[cursor.column])) {
+                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode) {
                     CstyleBehaviour.recordAutoInsert(editor, session, "}");
                     return {
                         text: '{}',
@@ -678,19 +681,24 @@ var CstyleBehaviour = function () {
                 CstyleBehaviour.clearMaybeInsertedClosing();
             }
             var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar == '}' || closing !== "") {
-                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column}, '}');
+            if (rightChar === '}') {
+                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column+1}, '}');
                 if (!openBracePos)
                      return null;
-
-                var indent = this.getNextLineIndent(state, line.substring(0, cursor.column), session.getTabString());
+                var next_indent = this.$getIndent(session.getLine(openBracePos.row));
+            } else if (closing) {
                 var next_indent = this.$getIndent(line);
-
-                return {
-                    text: '\n' + indent + '\n' + next_indent + closing,
-                    selection: [1, indent.length, 1, indent.length]
-                };
+            } else {
+                return;
             }
+            var indent = next_indent + session.getTabString();
+
+            return {
+                text: '\n' + indent + '\n' + next_indent + closing,
+                selection: [1, indent.length, 1, indent.length]
+            };
+        } else {
+            CstyleBehaviour.clearMaybeInsertedClosing();
         }
     });
 
@@ -894,7 +902,7 @@ oop.inherits(FoldMode, BaseFoldMode);
     this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
     this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
 
-    this.getFoldWidgetRange = function(session, foldStyle, row) {
+    this.getFoldWidgetRange = function(session, foldStyle, row, forceMultiline) {
         var line = session.getLine(row);
         var match = line.match(this.foldingStartMarker);
         if (match) {
@@ -902,11 +910,20 @@ oop.inherits(FoldMode, BaseFoldMode);
 
             if (match[1])
                 return this.openingBracketBlock(session, match[1], row, i);
-
-            return session.getCommentFoldRange(row, i + match[0].length, 1);
+                
+            var range = session.getCommentFoldRange(row, i + match[0].length, 1);
+            
+            if (range && !range.isMultiLine()) {
+                if (forceMultiline) {
+                    range = this.getSectionRange(session, row);
+                } else if (foldStyle != "all")
+                    range = null;
+            }
+            
+            return range;
         }
 
-        if (foldStyle !== "markbeginend")
+        if (foldStyle === "markbegin")
             return;
 
         var match = line.match(this.foldingStopMarker);
@@ -918,6 +935,38 @@ oop.inherits(FoldMode, BaseFoldMode);
 
             return session.getCommentFoldRange(row, i, -1);
         }
+    };
+    
+    this.getSectionRange = function(session, row) {
+        var line = session.getLine(row);
+        var startIndent = line.search(/\S/);
+        var startRow = row;
+        var startColumn = line.length;
+        row = row + 1;
+        var endRow = row;
+        var maxRow = session.getLength();
+        while (++row < maxRow) {
+            line = session.getLine(row);
+            var indent = line.search(/\S/);
+            if (indent === -1)
+                continue;
+            if  (startIndent > indent)
+                break;
+            var subRange = this.getFoldWidgetRange(session, "all", row);
+            
+            if (subRange) {
+                if (subRange.start.row <= startRow) {
+                    break;
+                } else if (subRange.isMultiLine()) {
+                    row = subRange.end.row;
+                } else if (startIndent == indent) {
+                    break;
+                }
+            }
+            endRow = row;
+        }
+        
+        return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);
     };
 
 }).call(FoldMode.prototype);
@@ -937,11 +986,9 @@ var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new CssHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = CssHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -953,7 +1000,7 @@ oop.inherits(Mode, TextMode);
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
-        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
+        var tokens = this.getTokenizer().getLineTokens(line, state).tokens;
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
         }
@@ -989,6 +1036,7 @@ oop.inherits(Mode, TextMode);
         return worker;
     };
 
+    this.$id = "ace/mode/css";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -1001,7 +1049,7 @@ ace.define('ace/mode/css_highlight_rules', ['require', 'exports', 'module' , 'ac
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var supportType = exports.supportType = "animation-fill-mode|alignment-adjust|alignment-baseline|animation-delay|animation-direction|animation-duration|animation-iteration-count|animation-name|animation-play-state|animation-timing-function|animation|appearance|azimuth|backface-visibility|background-attachment|background-break|background-clip|background-color|background-image|background-origin|background-position|background-repeat|background-size|background|baseline-shift|binding|bleed|bookmark-label|bookmark-level|bookmark-state|bookmark-target|border-bottom|border-bottom-color|border-bottom-left-radius|border-bottom-right-radius|border-bottom-style|border-bottom-width|border-collapse|border-color|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-left|border-left-color|border-left-style|border-left-width|border-radius|border-right|border-right-color|border-right-style|border-right-width|border-spacing|border-style|border-top|border-top-color|border-top-left-radius|border-top-right-radius|border-top-style|border-top-width|border-width|border|bottom|box-align|box-decoration-break|box-direction|box-flex-group|box-flex|box-lines|box-ordinal-group|box-orient|box-pack|box-shadow|box-sizing|break-after|break-before|break-inside|caption-side|clear|clip|color-profile|color|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|content|counter-increment|counter-reset|crop|cue-after|cue-before|cue|cursor|direction|display|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|elevation|empty-cells|fit|fit-position|float-offset|float|font-family|font-size|font-size-adjust|font-stretch|font-style|font-variant|font-weight|font|grid-columns|grid-rows|hanging-punctuation|height|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|icon|image-orientation|image-rendering|image-resolution|inline-box-align|left|letter-spacing|line-height|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|line-stacking|list-style-image|list-style-position|list-style-type|list-style|margin-bottom|margin-left|margin-right|margin-top|margin|mark-after|mark-before|mark|marks|marquee-direction|marquee-play-count|marquee-speed|marquee-style|max-height|max-width|min-height|min-width|move-to|nav-down|nav-index|nav-left|nav-right|nav-up|opacity|orphans|outline-color|outline-offset|outline-style|outline-width|outline|overflow-style|overflow-x|overflow-y|overflow|padding-bottom|padding-left|padding-right|padding-top|padding|page-break-after|page-break-before|page-break-inside|page-policy|page|pause-after|pause-before|pause|perspective-origin|perspective|phonemes|pitch-range|pitch|play-during|position|presentation-level|punctuation-trim|quotes|rendering-intent|resize|rest-after|rest-before|rest|richness|right|rotation-point|rotation|ruby-align|ruby-overhang|ruby-position|ruby-span|size|speak-header|speak-numeral|speak-punctuation|speak|speech-rate|stress|string-set|table-layout|target-name|target-new|target-position|target|text-align-last|text-align|text-decoration|text-emphasis|text-height|text-indent|text-justify|text-outline|text-shadow|text-transform|text-wrap|top|transform-origin|transform-style|transform|transition-delay|transition-duration|transition-property|transition-timing-function|transition|unicode-bidi|vertical-align|visibility|voice-balance|voice-duration|voice-family|voice-pitch-range|voice-pitch|voice-rate|voice-stress|voice-volume|volume|white-space-collapse|white-space|widows|width|word-break|word-spacing|word-wrap|z-index";
+var supportType = exports.supportType = "animation-fill-mode|alignment-adjust|alignment-baseline|animation-delay|animation-direction|animation-duration|animation-iteration-count|animation-name|animation-play-state|animation-timing-function|animation|appearance|azimuth|backface-visibility|background-attachment|background-break|background-clip|background-color|background-image|background-origin|background-position|background-repeat|background-size|background|baseline-shift|binding|bleed|bookmark-label|bookmark-level|bookmark-state|bookmark-target|border-bottom|border-bottom-color|border-bottom-left-radius|border-bottom-right-radius|border-bottom-style|border-bottom-width|border-collapse|border-color|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-left|border-left-color|border-left-style|border-left-width|border-radius|border-right|border-right-color|border-right-style|border-right-width|border-spacing|border-style|border-top|border-top-color|border-top-left-radius|border-top-right-radius|border-top-style|border-top-width|border-width|border|bottom|box-align|box-decoration-break|box-direction|box-flex-group|box-flex|box-lines|box-ordinal-group|box-orient|box-pack|box-shadow|box-sizing|break-after|break-before|break-inside|caption-side|clear|clip|color-profile|color|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|content|counter-increment|counter-reset|crop|cue-after|cue-before|cue|cursor|direction|display|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|elevation|empty-cells|fit|fit-position|float-offset|float|font-family|font-size|font-size-adjust|font-stretch|font-style|font-variant|font-weight|font|grid-columns|grid-rows|hanging-punctuation|height|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|icon|image-orientation|image-rendering|image-resolution|inline-box-align|left|letter-spacing|line-height|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|line-stacking|list-style-image|list-style-position|list-style-type|list-style|margin-bottom|margin-left|margin-right|margin-top|margin|mark-after|mark-before|mark|marks|marquee-direction|marquee-play-count|marquee-speed|marquee-style|max-height|max-width|min-height|min-width|move-to|nav-down|nav-index|nav-left|nav-right|nav-up|opacity|orphans|outline-color|outline-offset|outline-style|outline-width|outline|overflow-style|overflow-x|overflow-y|overflow|padding-bottom|padding-left|padding-right|padding-top|padding|page-break-after|page-break-before|page-break-inside|page-policy|page|pause-after|pause-before|pause|perspective-origin|perspective|phonemes|pitch-range|pitch|play-during|pointer-events|position|presentation-level|punctuation-trim|quotes|rendering-intent|resize|rest-after|rest-before|rest|richness|right|rotation-point|rotation|ruby-align|ruby-overhang|ruby-position|ruby-span|size|speak-header|speak-numeral|speak-punctuation|speak|speech-rate|stress|string-set|table-layout|target-name|target-new|target-position|target|text-align-last|text-align|text-decoration|text-emphasis|text-height|text-indent|text-justify|text-outline|text-shadow|text-transform|text-wrap|top|transform-origin|transform-style|transform|transition-delay|transition-duration|transition-property|transition-timing-function|transition|unicode-bidi|vertical-align|visibility|voice-balance|voice-duration|voice-family|voice-pitch-range|voice-pitch|voice-rate|voice-stress|voice-volume|volume|white-space-collapse|white-space|widows|width|word-break|word-spacing|word-wrap|z-index";
 var supportFunction = exports.supportFunction = "rgb|rgba|url|attr|counter|counters";
 var supportConstant = exports.supportConstant = "absolute|after-edge|after|all-scroll|all|alphabetic|always|antialiased|armenian|auto|avoid-column|avoid-page|avoid|balance|baseline|before-edge|before|below|bidi-override|block-line-height|block|bold|bolder|border-box|both|bottom|box|break-all|break-word|capitalize|caps-height|caption|center|central|char|circle|cjk-ideographic|clone|close-quote|col-resize|collapse|column|consider-shifts|contain|content-box|cover|crosshair|cubic-bezier|dashed|decimal-leading-zero|decimal|default|disabled|disc|disregard-shifts|distribute-all-lines|distribute-letter|distribute-space|distribute|dotted|double|e-resize|ease-in|ease-in-out|ease-out|ease|ellipsis|end|exclude-ruby|fill|fixed|georgian|glyphs|grid-height|groove|hand|hanging|hebrew|help|hidden|hiragana-iroha|hiragana|horizontal|icon|ideograph-alpha|ideograph-numeric|ideograph-parenthesis|ideograph-space|ideographic|inactive|include-ruby|inherit|initial|inline-block|inline-box|inline-line-height|inline-table|inline|inset|inside|inter-ideograph|inter-word|invert|italic|justify|katakana-iroha|katakana|keep-all|last|left|lighter|line-edge|line-through|line|linear|list-item|local|loose|lower-alpha|lower-greek|lower-latin|lower-roman|lowercase|lr-tb|ltr|mathematical|max-height|max-size|medium|menu|message-box|middle|move|n-resize|ne-resize|newspaper|no-change|no-close-quote|no-drop|no-open-quote|no-repeat|none|normal|not-allowed|nowrap|nw-resize|oblique|open-quote|outset|outside|overline|padding-box|page|pointer|pre-line|pre-wrap|pre|preserve-3d|progress|relative|repeat-x|repeat-y|repeat|replaced|reset-size|ridge|right|round|row-resize|rtl|s-resize|scroll|se-resize|separate|slice|small-caps|small-caption|solid|space|square|start|static|status-bar|step-end|step-start|steps|stretch|strict|sub|super|sw-resize|table-caption|table-cell|table-column-group|table-column|table-footer-group|table-header-group|table-row-group|table-row|table|tb-rl|text-after-edge|text-before-edge|text-bottom|text-size|text-top|text|thick|thin|transparent|underline|upper-alpha|upper-latin|upper-roman|uppercase|use-script|vertical-ideographic|vertical-text|visible|w-resize|wait|whitespace|z-index|zero";
 var supportConstantColor = exports.supportConstantColor = "aqua|black|blue|fuchsia|gray|green|lime|maroon|navy|olive|orange|purple|red|silver|teal|white|yellow";
@@ -1234,6 +1282,7 @@ var tagMap = lang.createMap({
     img         : 'image',
     input       : 'form',
     label       : 'form',
+    option      : 'form',
     script      : 'script',
     select      : 'form',
     textarea    : 'form',
@@ -1259,7 +1308,7 @@ var HtmlHighlightRules = function() {
             token : "keyword.operator.separator",
             regex : "=",
             push : [{
-                include: "space",
+                include: "space"
             }, {
                 token : "string",
                 regex : "[^<>='\"`\\s]+",
@@ -1413,7 +1462,7 @@ var XmlHighlightRules = function(normalize) {
             token : "constant.language.escape",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)"
         }, {
-            token : "invalid.illegal", regex : "&"
+            token : "text", regex : "&"
         }],
 
         string: [{
@@ -2023,6 +2072,286 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
+ace.define('ace/mode/html_completions', ['require', 'exports', 'module' , 'ace/token_iterator'], function(require, exports, module) {
+
+
+var TokenIterator = require("../token_iterator").TokenIterator;
+
+var commonAttributes = [
+    "accesskey",
+    "class",
+    "contenteditable",
+    "contextmenu",
+    "dir",
+    "draggable",
+    "dropzone",
+    "hidden",
+    "id",
+    "lang",
+    "spellcheck",
+    "style",
+    "tabindex",
+    "title",
+    "translate"
+];
+
+var eventAttributes = [
+    "onabort",
+    "onblur",
+    "oncancel",
+    "oncanplay",
+    "oncanplaythrough",
+    "onchange",
+    "onclick",
+    "onclose",
+    "oncontextmenu",
+    "oncuechange",
+    "ondblclick",
+    "ondrag",
+    "ondragend",
+    "ondragenter",
+    "ondragleave",
+    "ondragover",
+    "ondragstart",
+    "ondrop",
+    "ondurationchange",
+    "onemptied",
+    "onended",
+    "onerror",
+    "onfocus",
+    "oninput",
+    "oninvalid",
+    "onkeydown",
+    "onkeypress",
+    "onkeyup",
+    "onload",
+    "onloadeddata",
+    "onloadedmetadata",
+    "onloadstart",
+    "onmousedown",
+    "onmousemove",
+    "onmouseout",
+    "onmouseover",
+    "onmouseup",
+    "onmousewheel",
+    "onpause",
+    "onplay",
+    "onplaying",
+    "onprogress",
+    "onratechange",
+    "onreset",
+    "onscroll",
+    "onseeked",
+    "onseeking",
+    "onselect",
+    "onshow",
+    "onstalled",
+    "onsubmit",
+    "onsuspend",
+    "ontimeupdate",
+    "onvolumechange",
+    "onwaiting"
+];
+
+var globalAttributes = commonAttributes.concat(eventAttributes);
+
+var attributeMap = {
+    "html": ["manifest"],
+    "head": [],
+    "title": [],
+    "base": ["href", "target"],
+    "link": ["href", "hreflang", "rel", "media", "type", "sizes"],
+    "meta": ["http-equiv", "name", "content", "charset"],
+    "style": ["type", "media", "scoped"],
+    "script": ["charset", "type", "src", "defer", "async"],
+    "noscript": ["href"],
+    "body": ["onafterprint", "onbeforeprint", "onbeforeunload", "onhashchange", "onmessage", "onoffline", "onpopstate", "onredo", "onresize", "onstorage", "onundo", "onunload"],
+    "section": [],
+    "nav": [],
+    "article": ["pubdate"],
+    "aside": [],
+    "h1": [],
+    "h2": [],
+    "h3": [],
+    "h4": [],
+    "h5": [],
+    "h6": [],
+    "header": [],
+    "footer": [],
+    "address": [],
+    "main": [],
+    "p": [],
+    "hr": [],
+    "pre": [],
+    "blockquote": ["cite"],
+    "ol": ["start", "reversed"],
+    "ul": [],
+    "li": ["value"],
+    "dl": [],
+    "dt": [],
+    "dd": [],
+    "figure": [],
+    "figcaption": [],
+    "div": [],
+    "a": ["href", "target", "ping", "rel", "media", "hreflang", "type"],
+    "em": [],
+    "strong": [],
+    "small": [],
+    "s": [],
+    "cite": [],
+    "q": ["cite"],
+    "dfn": [],
+    "abbr": [],
+    "data": [],
+    "time": ["datetime"],
+    "code": [],
+    "var": [],
+    "samp": [],
+    "kbd": [],
+    "sub": [],
+    "sup": [],
+    "i": [],
+    "b": [],
+    "u": [],
+    "mark": [],
+    "ruby": [],
+    "rt": [],
+    "rp": [],
+    "bdi": [],
+    "bdo": [],
+    "span": [],
+    "br": [],
+    "wbr": [],
+    "ins": ["cite", "datetime"],
+    "del": ["cite", "datetime"],
+    "img": ["alt", "src", "height", "width", "usemap", "ismap"],
+    "iframe": ["name", "src", "height", "width", "sandbox", "seamless"],
+    "embed": ["src", "height", "width", "type"],
+    "object": ["param", "data", "type", "height" , "width", "usemap", "name", "form", "classid"],
+    "param": ["name", "value"],
+    "video": ["src", "autobuffer", "autoplay", "loop", "controls", "width", "height", "poster"],
+    "audio": ["src", "autobuffer", "autoplay", "loop", "controls"],
+    "source": ["src", "type", "media"],
+    "track": ["kind", "src", "srclang", "label", "default"],
+    "canvas": ["width", "height"],
+    "map": ["name"],
+    "area": ["shape", "coords", "href", "hreflang", "alt", "target", "media", "rel", "ping", "type"],
+    "svg": [],
+    "math": [],
+    "table": ["summary"],
+    "caption": [],
+    "colgroup": ["span"],
+    "col": ["span"],
+    "tbody": [],
+    "thead": [],
+    "tfoot": [],
+    "tr": [],
+    "td": ["headers", "rowspan", "colspan"],
+    "th": ["headers", "rowspan", "colspan", "scope"],
+    "form": ["accept-charset", "action", "autocomplete", "enctype", "method", "name", "novalidate", "target"],
+    "fieldset": ["disabled", "form", "name"],
+    "legend": [],
+    "label": ["form", "for"],
+    "input": ["type", "accept", "alt", "autocomplete", "checked", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "height", "list", "max", "maxlength", "min", "multiple", "pattern", "placeholder", "readonly", "required", "size", "src", "step", "width", "files", "value"],
+    "button": ["autofocus", "disabled", "form", "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget", "name", "value", "type"],
+    "select": ["autofocus", "disabled", "form", "multiple", "name", "size"],
+    "datalist": [],
+    "optgroup": ["disabled", "label"],
+    "option": ["disabled", "selected", "label", "value"],
+    "textarea": ["autofocus", "disabled", "form", "maxlength", "name", "placeholder", "readonly", "required", "rows", "cols", "wrap"],
+    "keygen": ["autofocus", "challenge", "disabled", "form", "keytype", "name"],
+    "output": ["for", "form", "name"],
+    "progress": ["value", "max"],
+    "meter": ["value", "min", "max", "low", "high", "optimum"],
+    "details": ["open"],
+    "summary": [],
+    "command": ["type", "label", "icon", "disabled", "checked", "radiogroup", "command"],
+    "menu": ["type", "label"],
+    "dialog": ["open"]
+};
+
+var allElements = Object.keys(attributeMap);
+
+function hasType(token, type) {
+    var tokenTypes = token.type.split('.');
+    return type.split('.').every(function(type){
+        return (tokenTypes.indexOf(type) !== -1);
+    });
+}
+
+function findTagName(session, pos) {
+    var iterator = new TokenIterator(session, pos.row, pos.column);
+    var token = iterator.getCurrentToken();
+    if (!token || !hasType(token, 'tag') && !(hasType(token, 'text') && token.value.match('/'))){
+        do {
+            token = iterator.stepBackward();
+        } while (token && (hasType(token, 'string') || hasType(token, 'operator') || hasType(token, 'attribute-name') || hasType(token, 'text')));
+    }
+    if (token && hasType(token, 'tag-name') && !iterator.stepBackward().value.match('/'))
+        return token.value;
+}
+
+var HtmlCompletions = function() {
+
+};
+
+(function() {
+
+    this.getCompletions = function(state, session, pos, prefix) {
+        var token = session.getTokenAt(pos.row, pos.column);
+
+        if (!token)
+            return [];
+        if (hasType(token, "tag-name") || (token.value == '<' && hasType(token, "text")))
+            return this.getTagCompletions(state, session, pos, prefix);
+        if (hasType(token, 'text') || hasType(token, 'attribute-name'))
+            return this.getAttributeCompetions(state, session, pos, prefix);
+
+        return [];
+    };
+
+    this.getTagCompletions = function(state, session, pos, prefix) {
+        var elements = allElements;
+        if (prefix) {
+            elements = elements.filter(function(element){
+                return element.indexOf(prefix) === 0;
+            });
+        }
+        return elements.map(function(element){
+            return {
+                value: element,
+                meta: "tag"
+            };
+        });
+    };
+
+    this.getAttributeCompetions = function(state, session, pos, prefix) {
+        var tagName = findTagName(session, pos);
+        if (!tagName)
+            return [];
+        var attributes = globalAttributes;
+        if (tagName in attributeMap) {
+            attributes = attributes.concat(attributeMap[tagName]);
+        }
+        if (prefix) {
+            attributes = attributes.filter(function(attribute){
+                return attribute.indexOf(prefix) === 0;
+            });
+        }
+        return attributes.map(function(attribute){
+            return {
+                caption: attribute,
+                snippet: attribute + '="$0"',
+                meta: "attribute"
+            };
+        });
+    };
+
+}).call(HtmlCompletions.prototype);
+
+exports.HtmlCompletions = HtmlCompletions;
+});
+
 ace.define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/mode/folding/lua', 'ace/range', 'ace/worker/worker_client'], function(require, exports, module) {
 
 
@@ -2035,11 +2364,9 @@ var Range = require("../range").Range;
 var WorkerClient = require("../worker/worker_client").WorkerClient;
 
 var Mode = function() {
-    var highlighter = new LuaHighlightRules();
+    this.HighlightRules = LuaHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.foldingRules = new LuaFoldMode();
-    this.$keywordList = highlighter.$keywordList;
 };
 oop.inherits(Mode, TextMode);
 
@@ -2092,7 +2419,7 @@ oop.inherits(Mode, TextMode);
         var indent = this.$getIndent(line);
         var level = 0;
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
 
         if (state == "start") {
@@ -2115,7 +2442,7 @@ oop.inherits(Mode, TextMode);
         if (line.match(/^\s*[\)\}\]]$/))
             return true;
 
-        var tokens = this.$tokenizer.getLineTokens(line.trim(), state).tokens;
+        var tokens = this.getTokenizer().getLineTokens(line.trim(), state).tokens;
 
         if (!tokens || !tokens.length)
             return false;
@@ -2126,7 +2453,7 @@ oop.inherits(Mode, TextMode);
     this.autoOutdent = function(state, session, row) {
         var prevLine = session.getLine(row - 1);
         var prevIndent = this.$getIndent(prevLine).length;
-        var prevTokens = this.$tokenizer.getLineTokens(prevLine, "start").tokens;
+        var prevTokens = this.getTokenizer().getLineTokens(prevLine, "start").tokens;
         var tabLength = session.getTabString().length;
         var expectedIndent = prevIndent + tabLength * getNetIndentLevel(prevTokens);
         var curIndent = this.$getIndent(session.getLine(row)).length;
@@ -2151,6 +2478,7 @@ oop.inherits(Mode, TextMode);
         return worker;
     };
 
+    this.$id = "ace/mode/lua";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
